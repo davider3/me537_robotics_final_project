@@ -1,0 +1,4 @@
+Pin 35 is input only
+The Esp32 has to be put into download mode in order to upload a new program to it
+	-This is done by pressing the boot button just to the right of the microusb port
+	-There might be a way to have it automatically enter download mode but for now I don't need that

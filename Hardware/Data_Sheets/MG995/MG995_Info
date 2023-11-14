@@ -1,0 +1,5 @@
+-DataSheet Calls for 4.8V minimum for the logic but others have had success with 3.3V logic
+
+-There is a Library 'ESP32Servo' that can be used to control the servo but it can also be
+controlled with the default 'LED' library because it uses PWM
+
