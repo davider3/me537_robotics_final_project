@@ -1,5 +1,9 @@
 # %% Setup
 
+# general imports
+import time
+import inspect
+
 # if pyfirmata is not installed, install it
 try:
     from pyfirmata import Arduino, util
@@ -10,10 +14,6 @@ except:
 # Fix the deprecated part of the pyfirmata library
 if not hasattr(inspect, 'getargspec'):
     inspect.getargspec = inspect.getfullargspec
-
-# other imports
-import time
-import inspect
 
 # %%
 
