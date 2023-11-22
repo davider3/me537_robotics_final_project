@@ -362,7 +362,7 @@ class SerialArm:
             viz = VizScene()
             viz.add_arm(self)
             viz.update(qs=[q]) 
-            viz.add_marker(target)
+            viz.add_marker(target, radius=.6)
         
         # Iteratively get closer to desired location
         while np.linalg.norm(error) > tol and count < max_iter:
@@ -386,13 +386,7 @@ class SerialArm:
 
         # Show the visualization for a bit longer when finished and then close viz
         if plot:
-            time_to_run = 1
-            refresh_rate = 60
-
-            for i in range(refresh_rate * time_to_run):
-                viz.update()
-                time.sleep(1.0/refresh_rate)
-            viz.close_viz()
+            viz.hold()
 
         return (q, error, count, count < max_iter, 'No errors noted')
 

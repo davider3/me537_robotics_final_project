@@ -28,6 +28,7 @@ class RobotArmGUI(QWidget):
     def __init__(self):
         super().__init__()
 
+        # TODO update the link lengths with the actual values
         dh = [[0, 3, 0, -np.pi/2],
               [0, 0, 3, 0],
               [np.pi/2, 0, 3, 0]]
@@ -104,19 +105,9 @@ class RobotArmGUI(QWidget):
         # TODO Fine tune the gain matrix
         gain = .3 * np.eye(6)
 
-        self.qs = self.arm.ik_position(goal, plot=True, K=gain, q0=self.q_curr)
+        self.qs = self.arm.ik_position(goal, plot=True, method='p_inv', K=gain, q0=self.q_curr)
 
         # TODO Display the calculated angles in the label
-
-        print(self.qs)
-        
-        # Show the orientation of the arm
-        viz = VizScene()
-        viz.add_marker(goal)
-        viz.add_arm(self.arm)
-        viz.update(qs=self.qs)
-        viz.hold()
-        viz.close_viz()
 
     def move(self):
         
