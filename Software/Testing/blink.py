@@ -24,6 +24,6 @@ on = True
 for _ in range(20):
     controller.digital[13].write(on)
     on = not on
-    time.sleep(.1)
+    time.sleep(.5)
 
 controller.exit()
