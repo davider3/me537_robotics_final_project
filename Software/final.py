@@ -32,10 +32,11 @@ class RobotArmGUI(QWidget):
         super().__init__()
         
         # Setup Arduino
-        self.controller = Arduino(com)
-        self.joints = [self.controller.get_pin(f'd:{pin}:p') for pin in servo_pins]
-        for joint in self.joints:
-            joint.mode = SERVO
+        if not com == None:
+            self.controller = Arduino(com)
+            self.joints = [self.controller.get_pin(f'd:{pin}:p') for pin in servo_pins]
+            for joint in self.joints:
+                joint.mode = SERVO
 
         # Setup Serial arm
         # TODO update the link lengths with the actual values
@@ -124,7 +125,7 @@ class RobotArmGUI(QWidget):
 # %% Main
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    window = RobotArmGUI('COM11')
+    window = RobotArmGUI(None)
     window.show()
     sys.exit(app.exec_())
 
