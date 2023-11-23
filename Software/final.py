@@ -13,10 +13,11 @@ from visualization import VizScene
 
 # if pyfirmata is not installed, install it
 try:
-    from pyfirmata import Arduino, util
+    from pyfirmata import Arduino, util, SERVO
 except:
     import pip
     pip.main(['install', 'pyfirmata'])
+    from pyfirmata import Arduino, util, SERVO
 
 # Fix the deprecated part of the pyfirmata library
 if not hasattr(inspect, 'getargspec'):
@@ -24,13 +25,17 @@ if not hasattr(inspect, 'getargspec'):
 
 # %% Robot class
 
+rad_to_deg = 180 / np.pi
+
 class RobotArmGUI(QWidget):
     def __init__(self, com, servo_pins=[9, 10, 11]):
         super().__init__()
         
         # Setup Arduino
         self.controller = Arduino(com)
-        joints = [self.controller.get_pin(f'd:{pin}:p') for pin in servo_pins]
+        self.joints = [self.controller.get_pin(f'd:{pin}:p') for pin in servo_pins]
+        for joint in self.joints:
+            joint.mode = SERVO
 
         # Setup Serial arm
         # TODO update the link lengths with the actual values
@@ -98,9 +103,12 @@ class RobotArmGUI(QWidget):
         # TODO Fine tune the gain matrix
         gain = .3 * np.eye(6)
 
-        self.qs = self.arm.ik_position(goal, plot=True, method='p_inv', K=gain, q0=self.q_curr)
+        self.qs, _, _, _, _ = self.arm.ik_position(goal, plot=True, method='p_inv', K=gain, q0=self.q_curr)
 
-        # TODO Display the calculated angles in the label
+        # Display the calculated angles in the label
+        self.labels[3].setText(f'q\u2081 = {round(self.qs[0], 3)}, ' 
+                               f'q\u2082 = {round(self.qs[1], 3)}, '
+                               f'q\u2083 = {round(self.qs[2], 3)}')
 
     def move(self):
         
@@ -108,6 +116,9 @@ class RobotArmGUI(QWidget):
         self.ik()
 
         # TODO define moving the robot arm
+        for joint, q in zip(self.joints, self.qs):
+            joint.write(q * rad_to_deg)
+
 
         self.q_curr = self.qs
 
