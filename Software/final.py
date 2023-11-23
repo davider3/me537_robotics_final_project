@@ -22,23 +22,25 @@ except:
 if not hasattr(inspect, 'getargspec'):
     inspect.getargspec = inspect.getfullargspec
 
-# %%
+# %% Robot class
 
 class RobotArmGUI(QWidget):
-    def __init__(self):
+    def __init__(self, com, servo_pins=[9, 10, 11]):
         super().__init__()
+        
+        # Setup Arduino
+        self.controller = Arduino(com)
+        joints = [self.controller.get_pin(f'd:{pin}:p') for pin in servo_pins]
 
+        # Setup Serial arm
         # TODO update the link lengths with the actual values
         dh = [[0, 3, 0, -np.pi/2],
               [0, 0, 3, 0],
               [np.pi/2, 0, 3, 0]]
         # TODO define joint limits
         limits = None
-
         self.arm = kin.SerialArm(dh, joint_limits=limits)
-
         self.q_curr = [0, 0, 0]
-
         viz = VizScene()
         viz.add_arm(self.arm)
         viz.hold()
@@ -48,14 +50,13 @@ class RobotArmGUI(QWidget):
 
     def init_ui(self):
         # Create labels and input fields for x, y, and z coordinates
-        self.x_label = QLabel('X Coordinate:')
-        self.x_input = QLineEdit(self)
-
-        self.y_label = QLabel('Y Coordinate:')
-        self.y_input = QLineEdit(self)
-
-        self.z_label = QLabel('Z Coordinate:')
-        self.z_input = QLineEdit(self)
+        self.labels = [QLabel('X Coordinate:'),
+                       QLabel('Y Coordinate:'),
+                       QLabel('Z Coordinate:'),
+                       QLabel('Calculated Angles:')]
+        self.inputs = [QLineEdit(self),
+                       QLineEdit(self),
+                       QLineEdit(self)]
 
         # Create buttons for inverse kinematics and moving the robot arm
         self.inverse_kinematics_button = QPushButton('Inverse Kinematics', self)
@@ -65,24 +66,19 @@ class RobotArmGUI(QWidget):
         self.inverse_kinematics_button.clicked.connect(self.ik)
         self.move_arm_button.clicked.connect(self.move)
 
-        # Create a label to display the calculated angles
-        self.angles_label = QLabel('Calculated Angles:')
-
         # Set up the layout
         input_layout = QVBoxLayout()
-        input_layout.addWidget(self.x_label)
-        input_layout.addWidget(self.x_input)
-        input_layout.addWidget(self.y_label)
-        input_layout.addWidget(self.y_input)
-        input_layout.addWidget(self.z_label)
-        input_layout.addWidget(self.z_input)
+
+        for i in range(len(self.inputs)):
+            input_layout.addWidget(self.labels[i])
+            input_layout.addWidget(self.inputs[i])
 
         button_layout = QVBoxLayout()
         button_layout.addWidget(self.inverse_kinematics_button)
         button_layout.addWidget(self.move_arm_button)
 
         result_layout = QVBoxLayout()
-        result_layout.addWidget(self.angles_label)
+        result_layout.addWidget(self.labels[3])
 
         main_layout = QVBoxLayout()
         main_layout.addLayout(input_layout)
@@ -97,10 +93,7 @@ class RobotArmGUI(QWidget):
 
     def ik(self):
         # Get goal location from GUI
-        goal = np.zeros(3)
-        goal[0] = float(self.x_input.text())
-        goal[1] = float(self.y_input.text())
-        goal[2] = float(self.z_input.text())
+        goal = [float(input.text()) for input in self.inputs]
 
         # TODO Fine tune the gain matrix
         gain = .3 * np.eye(6)
@@ -118,12 +111,11 @@ class RobotArmGUI(QWidget):
 
         self.q_curr = self.qs
 
-# %%
+# %% Main
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    window = RobotArmGUI()
+    window = RobotArmGUI('COM11')
     window.show()
     sys.exit(app.exec_())
-
 
 # %%
