@@ -100,7 +100,6 @@ class RobotArmGUI(QWidget):
         # Get goal location from GUI
         goal = [float(input.text()) for input in self.inputs]
 
-        # TODO Fine tune the gain matrix
         gain = .3 * np.eye(6)
 
         self.qs, _, _, _, _ = self.arm.ik_position(goal, plot=True, method='p_inv', K=gain, q0=self.q_curr)
@@ -115,10 +114,10 @@ class RobotArmGUI(QWidget):
         # run the inverse kinematics to get to that point
         self.ik()
 
-        # TODO define moving the robot arm
+        # Moves the robot arm directly to the new location
+        # TODO add some code to smooth out the robots motions
         for joint, q in zip(self.joints, self.qs):
             joint.write(q * rad_to_deg)
-
 
         self.q_curr = self.qs
 
