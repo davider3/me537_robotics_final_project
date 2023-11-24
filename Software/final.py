@@ -115,10 +115,13 @@ class RobotArmGUI(QWidget):
         # run the inverse kinematics to get to that point
         self.ik()
 
-        # Moves the robot arm directly to the new location
-        # TODO add some code to smooth out the robots motions
-        for joint, q in zip(self.joints, self.qs):
-            joint.write(q * rad_to_deg)
+        # TEST: This code should make it so that the servos don't move as suddenly
+        steps = 50
+        q_steps = [np.linspace(self.q_curr[i], self.qs[i], steps) for i in range(len(self.qs))]
+        for i in range(steps):
+            for j in range(len(self.joints)):
+                self.joints[0].write(q_steps[j][i])
+            time.sleep(.01)
 
         self.q_curr = self.qs
 
