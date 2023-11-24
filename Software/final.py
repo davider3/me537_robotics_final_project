@@ -28,7 +28,7 @@ if not hasattr(inspect, 'getargspec'):
 rad_to_deg = 180 / np.pi
 
 class RobotArmGUI(QWidget):
-    def __init__(self, com, servo_pins=[9, 10, 11]):
+    def __init__(self, com=None, servo_pins=[9, 10, 11]):
         super().__init__()
         
         # Setup Arduino
