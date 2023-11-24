@@ -74,7 +74,6 @@ class RobotArmGUI(QWidget):
 
         # Set up the layout
         input_layout = QVBoxLayout()
-
         for i in range(len(self.inputs)):
             input_layout.addWidget(self.labels[i])
             input_layout.addWidget(self.inputs[i])
@@ -128,7 +127,7 @@ class RobotArmGUI(QWidget):
 # %% Main
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    window = RobotArmGUI(None)
+    window = RobotArmGUI()
     window.show()
     sys.exit(app.exec_())
 
