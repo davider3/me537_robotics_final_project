@@ -19,25 +19,33 @@ if not hasattr(inspect, 'getargspec'):
 
 # %% Create arduino and servo objects
 
-servo_pins=[10, 9, 11]
+servo_pins=[9, 10, 11]
 controller = Arduino('COM11')
 joints = [controller.get_pin(f'd:{pin}:p') for pin in servo_pins]
+
+controller.digital[12].write(1)
+time.sleep(.1)
+controller.digital[12].write(0)
+time.sleep(.1)
+controller.digital[12].write(1)
+time.sleep(.1)
+controller.digital[12].write(0)
+
 for joint in joints:
     joint.mode = SERVO
+    joint.write(0)
+    time.sleep(.4)
 
-# %% Smoothly move the 3 servos
+# %% Smoothly move the servos
 q_curr = [0, 0, 0]
-qs = [90, 90, 90]
+qs = [170, 90, 20]
 steps = 50
 q_steps = [np.linspace(q_curr[i], qs[i], steps) for i in range(len(qs))]
 for i in range(steps):
     for j in range(len(joints)):
-        joints[0].write(q_steps[j][i])
-    if i == 0:
-        time.sleep(.5)
-    time.sleep(.01)
-
+        joints[j].write(q_steps[j][i])
+        time.sleep(.03)
 
 controller.exit()
-# %%
 
+# %%
