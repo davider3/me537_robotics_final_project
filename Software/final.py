@@ -124,11 +124,16 @@ class RobotArmGUI(QWidget):
 
         self.q_curr = self.qs
 
+    def __del__(self):
+        self.controller.exit()
+
+# %% GUI
 # %% Main
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    window = RobotArmGUI()
+    window = RobotArmGUI(com='COM11')
     window.show()
     sys.exit(app.exec_())
+    del window
 
 # %%
