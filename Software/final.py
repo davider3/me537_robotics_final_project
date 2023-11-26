@@ -37,6 +37,8 @@ class RobotArmGUI(QWidget):
             self.joints = [self.controller.get_pin(f'd:{pin}:p') for pin in servo_pins]
             for joint in self.joints:
                 joint.mode = SERVO
+                joint.write(0)
+                time.sleep(.5)
 
         # Setup Serial arm
         # TODO update the link lengths with the actual values
@@ -119,8 +121,8 @@ class RobotArmGUI(QWidget):
         q_steps = [np.linspace(self.q_curr[i], self.qs[i], steps) for i in range(len(self.qs))]
         for i in range(steps):
             for j in range(len(self.joints)):
-                self.joints[0].write(q_steps[j][i])
-            time.sleep(.01)
+                self.joints[j].write(q_steps[j][i])
+            time.sleep(.03)
 
         self.q_curr = self.qs
 
