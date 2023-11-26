@@ -28,32 +28,43 @@ if not hasattr(inspect, 'getargspec'):
 rad_to_deg = 180 / np.pi
 
 class RobotArmGUI(QWidget):
-    def __init__(self, com=None, servo_pins=[9, 10, 11]):
+    def __init__(self, com=None, dh=[],
+                 joint_limits=None, 
+                 servo_pins=[9, 10, 11], 
+                 led=13, init_viz=False):
         super().__init__()
         
         # Setup Arduino
         if not com == None:
             self.controller = Arduino(com)
+
+            # Setup LED
+            self.led = self.controller.get_pin(f'd:{led}:o')
+
+            # Setup servo motor joints and move them to zero
             self.joints = [self.controller.get_pin(f'd:{pin}:p') for pin in servo_pins]
             for joint in self.joints:
                 joint.mode = SERVO
                 joint.write(0)
                 time.sleep(.5)
+            self.blink()
 
         # Setup Serial arm
-        # TODO update the link lengths with the actual values
-        dh = [[0, 3, 0, -np.pi/2],
-              [0, 0, 3, 0],
-              [np.pi/2, 0, 3, 0]]
-        # TODO define joint limits
-        limits = None
-        self.arm = kin.SerialArm(dh, joint_limits=limits)
-        self.q_curr = [0, 0, 0]
-        viz = VizScene()
-        viz.add_arm(self.arm)
-        viz.hold()
-        viz.close_viz()
+        if len(servo_pins) > 0:
+            # Create arm object
+            self.arm = kin.SerialArm(dh, joint_limits=joint_limits)
 
+            # Set position to zeros
+            self.q_curr = [0, 0, 0]
+
+            # Show the initial orientation
+            if init_viz:
+                viz = VizScene()
+                viz.add_arm(self.arm)
+                viz.hold()
+                viz.close_viz()
+
+        # Create the GUI
         self.init_ui()
 
     def init_ui(self):
@@ -104,7 +115,8 @@ class RobotArmGUI(QWidget):
 
         gain = .3 * np.eye(6)
 
-        self.qs, _, _, _, _ = self.arm.ik_position(goal, plot=True, method='p_inv', K=gain, q0=self.q_curr)
+        self.qs, _, _, _, _ = self.arm.ik_position(goal, plot=True, method='p_inv', 
+                                                   K=gain, q0=self.q_curr)
 
         # Display the calculated angles in the label
         self.labels[3].setText(f'q\u2081 = {round(self.qs[0], 3)}, ' 
@@ -116,25 +128,39 @@ class RobotArmGUI(QWidget):
         # run the inverse kinematics to get to that point
         self.ik()
 
-        # TEST: This code should make it so that the servos don't move as suddenly
+        # Smoothly-ish move the servos
         steps = 50
         q_steps = [np.linspace(self.q_curr[i], self.qs[i], steps) for i in range(len(self.qs))]
         for i in range(steps):
             for j in range(len(self.joints)):
-                self.joints[j].write(q_steps[j][i])
-            time.sleep(.03)
-
+                self.joints[j].write(q_steps[j][i] * rad_to_deg)
+                time.sleep(.03)
+        time.sleep(.5)
         self.q_curr = self.qs
+
+    def blink(self, flashes=2):
+        on = True
+        for _ in range(flashes):
+            self.led.write(on)
+            on = not on
+            time.sleep(.1)
 
     def __del__(self):
         self.controller.exit()
 
-# %% GUI
 # %% Main
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    window = RobotArmGUI(com='COM11')
+
+    # TODO update the link lengths with the actual values
+    dh = [[0, 3, 0, np.pi/2],
+          [0, 0, 3, 0],
+          [-np.pi/2 - np.pi/3, 0, 3, 0]]            
+    # TODO define joint limits
+    limits = None
+    window = RobotArmGUI(com='COM11', dh=dh, joint_limits=limits, led=12)
     window.show()
+
     sys.exit(app.exec_())
     del window
 

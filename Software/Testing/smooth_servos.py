@@ -39,12 +39,17 @@ for joint in joints:
 # %% Smoothly move the servos
 q_curr = [0, 0, 0]
 qs = [170, 90, 20]
+
 steps = 50
 q_steps = [np.linspace(q_curr[i], qs[i], steps) for i in range(len(qs))]
 for i in range(steps):
     for j in range(len(joints)):
         joints[j].write(q_steps[j][i])
         time.sleep(.03)
+
+controller.exit()
+
+# %%
 
 controller.exit()
 
