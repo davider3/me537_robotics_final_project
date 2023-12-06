@@ -152,13 +152,12 @@ class RobotArmGUI(QWidget):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
 
-    # TODO update the link lengths with the actual values
-    dh = [[0, 3, 0, np.pi/2],
-          [0, 0, 3, 0],
-          [-np.pi/2 - np.pi/3, 0, 3, 0]]            
+    dh = [[0, 2.5, 0, np.pi/2],
+          [0, 0, 2.5, 0],
+          [np.pi/3, 0, 2.5, 0]]            
     # TODO define joint limits
     limits = None
-    window = RobotArmGUI(com='COM11', dh=dh, joint_limits=limits, led=12)
+    window = RobotArmGUI(dh=dh, com='COM11', joint_limits=limits, led=12, init_viz=True)
     window.show()
 
     sys.exit(app.exec_())
