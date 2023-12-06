@@ -17,7 +17,7 @@ if not hasattr(inspect, 'getargspec'):
 
 # %%
 
-# CHECK: check that you are connected to the correct com port before each run
+# check that you are connected to the correct com port before each run
 controller = Arduino('COM11')
 
 on = True
