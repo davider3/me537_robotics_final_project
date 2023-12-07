@@ -38,7 +38,7 @@ for joint in joints:
 
 # %% Smoothly move the servos
 q_curr = [0, 0, 0]
-qs = [170, 90, 20]
+qs = [90, 90, 90]
 
 steps = 50
 q_steps = [np.linspace(q_curr[i], qs[i], steps) for i in range(len(qs))]
