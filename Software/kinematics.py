@@ -15,6 +15,7 @@ from transforms import *
 from visualization import VizScene
 import time
 from utility import skew
+import random
 
 
 eye = np.eye(4)
@@ -362,7 +363,7 @@ class SerialArm:
             viz = VizScene()
             viz.add_arm(self)
             viz.update(qs=[q]) 
-            viz.add_marker(target, radius=.6)
+            viz.add_marker(target)
         
         # Iteratively get closer to desired location
         while np.linalg.norm(error) > tol and count < max_iter:
@@ -379,7 +380,17 @@ class SerialArm:
                 break
             
             count += 1
-            q = q_dot + q
+            if self.qlim == None:
+                q = q_dot + q
+            else:
+                for i in range(len(q)):
+                    new_q = q_dot[i] + q[i]
+                    
+                    
+                    if new_q < self.qlim[i][0] or new_q > self.qlim[i][1]:
+                        q[i] = random.uniform(self.qlim[i][0], self.qlim[i][1])
+                    else:
+                        q[i] = new_q
             
             if plot:
                 viz.update(qs=[q])

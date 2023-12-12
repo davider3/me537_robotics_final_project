@@ -17,7 +17,7 @@ except:
 if not hasattr(inspect, 'getargspec'):
     inspect.getargspec = inspect.getfullargspec
 
-# %% Create arduino and servo objects
+# %% Create arduino object and Zero servos
 
 servo_pins=[9, 10, 11]
 controller = Arduino('COM11')
@@ -38,18 +38,26 @@ for joint in joints:
 
 # %% Smoothly move the servos
 q_curr = [0, 0, 0]
-qs = [90, 90, 90]
+qs = [135, 115, 50]
+
+steps = 50
+q_steps = [np.linspace(q_curr[i], qs[i], steps) for i in range(len(qs))]
+
+for j in range(len(joints)):
+    joints[j].write(qs[j])
+    time.sleep(.5)
+
+controller.exit()
+
+# %% Move one servoe
 
 steps = 50
 q_steps = [np.linspace(q_curr[i], qs[i], steps) for i in range(len(qs))]
 for i in range(steps):
-    for j in range(len(joints)):
-        joints[j].write(q_steps[j][i])
-        time.sleep(.03)
+    joints[0].write(q_steps[j][i])
+    time.sleep(.03)
 
-controller.exit()
-
-# %%
+# %% destroy arduino object
 
 controller.exit()
 
