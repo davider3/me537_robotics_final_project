@@ -55,7 +55,7 @@ class RobotArmGUI(QWidget):
             self.arm = kin.SerialArm(dh, joint_limits=joint_limits)
 
             # Set position to zeros
-            self.q_curr = [0, 0, 0]
+            self.q_curr = [0.0, 0.0, 0.0]
 
             # Show the initial orientation
             if init_viz:
@@ -113,31 +113,42 @@ class RobotArmGUI(QWidget):
         # Get goal location from GUI
         goal = [float(input.text()) for input in self.inputs]
 
-        gain = .3 * np.eye(6)
+        gain = .005 * np.eye(6)
 
-        self.qs, _, _, _, _ = self.arm.ik_position(goal, plot=True, method='p_inv', 
-                                                   K=gain, q0=self.q_curr)
+        self.qs, _, _, _, _ = self.arm.ik_position(goal, plot=True, 
+                                                   method='p_inv', K=gain, 
+                                                   q0=self.q_curr, max_iter=2000)
 
         # Display the calculated angles in the label
-        self.labels[3].setText(f'q\u2081 = {round(self.qs[0], 3)}, ' 
-                               f'q\u2082 = {round(self.qs[1], 3)}, '
-                               f'q\u2083 = {round(self.qs[2], 3)}')
+        self.labels[3].setText(f'q\u2081 = {round(self.qs[0]*rad_to_deg, 3)}, ' 
+                               f'q\u2082 = {round(self.qs[1]*rad_to_deg, 3)}, '
+                               f'q\u2083 = {round(self.qs[2]*rad_to_deg, 3)}')
 
     def move(self):
         
         # run the inverse kinematics to get to that point
         self.ik()
 
-        # Smoothly-ish move the servos
-        steps = 50
-        q_steps = [np.linspace(self.q_curr[i], self.qs[i], steps) for i in range(len(self.qs))]
-        for i in range(steps):
-            for j in range(len(self.joints)):
-                self.joints[j].write(q_steps[j][i] * rad_to_deg)
-                time.sleep(.03)
-        time.sleep(.5)
-        self.q_curr = self.qs
+        if self.valid_qs():
+            # Smoothly-ish move the servos
+            for joint, q in zip(self.joints, self.qs):
+                joint.write(np.abs(q*rad_to_deg))
+                time.sleep(.5)
+            self.q_curr = self.qs
+        
+        viz = VizScene()
+        viz.add_arm(self.arm)
+        viz.update(qs=self.q_curr)
+        viz.hold()
 
+    def valid_qs(self):
+        limits = self.arm.qlim
+        for i in range(len(self.qs)):
+            if self.qs[i] < limits[i][0] or self.qs[i] > limits[i][1]:
+                return False
+            
+        return True
+    
     def blink(self, flashes=2):
         on = True
         for _ in range(flashes):
@@ -154,10 +165,11 @@ if __name__ == '__main__':
 
     dh = [[0, 2.5, 0, np.pi/2],
           [0, 0, 2.5, 0],
-          [np.pi/3, 0, 2.5, 0]]            
-    # TODO define joint limits
-    limits = None
-    window = RobotArmGUI(dh=dh, com='COM11', joint_limits=limits, led=12, init_viz=True)
+          [np.pi/3, 0, 2.5, 0]]
+    limits = [[0, np.pi],
+             [0, np.pi],
+             [-np.pi, 0]]
+    window = RobotArmGUI(dh=dh, com='COM11', joint_limits=limits, led=12, init_viz=False)
     window.show()
 
     sys.exit(app.exec_())
