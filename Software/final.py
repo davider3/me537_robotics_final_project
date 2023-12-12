@@ -169,10 +169,8 @@ if __name__ == '__main__':
     limits = [[0, np.pi],
              [0, np.pi],
              [-np.pi, 0]]
-    window = RobotArmGUI(dh=dh, com='COM11', joint_limits=limits, led=12, init_viz=False)
+    window = RobotArmGUI(dh=dh, joint_limits=limits, led=12, init_viz=False)
     window.show()
 
     sys.exit(app.exec_())
     del window
-
-# %%
