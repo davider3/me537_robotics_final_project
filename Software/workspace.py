@@ -1,17 +1,14 @@
 # %% Setup
 
 # general imports
-import time
-import inspect
-import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
 import numpy as np
 from tqdm import tqdm
 
 # Custom imports
 import kinematics as kin
-from visualization import VizScene
-import transforms as tr
 
 # %% Run fk 
 dh = [[0, 2.5, 0, np.pi/2],
@@ -37,20 +34,6 @@ loop.close()
 
 # %% Visualize
 
-# Visualize the robot arm
-viz = VizScene()
-
-loop = tqdm(total = len(points))
-
-for point in points:
-    viz.add_marker(point, radius=0.05)
-    loop.update(1)
-
-loop.close()
-
-viz.add_arm(Arm)
-viz.hold()
-viz.close_viz()       
-
+print(points)
 
 # %%

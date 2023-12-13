@@ -272,7 +272,9 @@ class SerialArm:
             dh_string += f"{self.dh[i][0]}\t|\t{self.dh[i][1]}\t|\t{self.dh[i][2]}\t|\t{self.dh[i][3]}\t|\t{self.jt[i]}\n"
         return "Serial Arm\n" + dh_string
     
-    def ik_position(self, target, plot=False, q0=None, method='J_T', force=True, tol=1e-4, K=None, kd=0.001, max_iter=100):
+    def ik_position(self, target, plot=False, q0=None, 
+                    method='J_T', force=True, tol=1e-4, 
+                    K=None, kd=0.001, kj=1, max_iter=100):
         """
         (qf, ef, iter, reached_max_iter, status_msg) = arm.ik2(target, q0=None, method='jt', force=False, tol=1e-6, K=None)
         Description:
@@ -383,10 +385,13 @@ class SerialArm:
             if self.qlim == None:
                 q = q_dot + q
             else:
-                for i in range(len(q)):
+                for i in range(self.n):
                     new_q = q_dot[i] + q[i]
                     
-                    
+                    # if new_q <= self.qlim[i][0]:
+                    #     q[i] = new_q + kj*abs(new_q - self.qlim[i][0])
+                    # elif new_q >= self.qlim[i][1]:
+                    #     q[i] = new_q - kj*abs(new_q - self.qlim[i][1])
                     if new_q < self.qlim[i][0] or new_q > self.qlim[i][1]:
                         q[i] = random.uniform(self.qlim[i][0], self.qlim[i][1])
                     else:

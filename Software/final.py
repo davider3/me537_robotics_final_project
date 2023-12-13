@@ -113,10 +113,10 @@ class RobotArmGUI(QWidget):
         # Get goal location from GUI
         goal = [float(input.text()) for input in self.inputs]
 
-        gain = .005 * np.eye(6)
+        gain = .05 * np.eye(6)
 
         self.qs, _, _, _, _ = self.arm.ik_position(goal, plot=True, 
-                                                   method='p_inv', K=gain, 
+                                                   method='p_inv', K=gain, kj=2,
                                                    q0=self.q_curr, max_iter=2000)
 
         # Display the calculated angles in the label
@@ -169,8 +169,10 @@ if __name__ == '__main__':
     limits = [[0, np.pi],
              [0, np.pi],
              [-np.pi, 0]]
-    window = RobotArmGUI(dh=dh, joint_limits=limits, led=12, init_viz=False)
+    window = RobotArmGUI(dh=dh, com='COM11', joint_limits=limits, led=12, init_viz=False)
     window.show()
 
     sys.exit(app.exec_())
     del window
+
+# %%
