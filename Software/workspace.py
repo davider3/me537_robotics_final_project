@@ -46,7 +46,7 @@ fig = plt.figure(figsize=(6, 4))
 ax = fig.add_subplot(111, projection='3d')
 
 # Scatter plot the points
-scatter = ax.scatter(x, y, z)
+scatter = ax.scatter(x, y, z, s=.5)
 
 # Set labels for each axis
 ax.set_xlabel('X Label')
@@ -54,11 +54,11 @@ ax.set_ylabel('Y Label')
 ax.set_zlabel('Z Label')
 
 output_folder = "C:/Users/drein/Documents/Classes/ME_537_robotics/me537_robotics_final_project/Software/Images/new_gif"
-os.makedirs(output_folder, exist_ok=True)
 
-loop = tqdm(total=360)
+steps = 360
+loop = tqdm(total=steps)
 # Allow interactive rotation
-for i in range(360):
+for i in range(steps):
     ax.view_init(azim=i)
     plt.savefig('C:/Users/drein/Documents/Classes/ME_537_robotics/me537_robotics_final_project/Software/Images/new_gif/{0:03}.png'.format(i))
     loop.update(1)
@@ -68,5 +68,7 @@ loop.close()
 # %% Create GIF
 frames = [Image.open(image) for image in glob.glob(f'{output_folder}/*.png')]
 frame_one = frames[0]
-frame_one.save("my_awesome.gif", format="GIF", append_images=frames,
+frame_one.save("newest.gif", format="GIF", append_images=frames,
                 save_all=True, duration=1, loop=0)
+
+# %%
