@@ -6,6 +6,10 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import numpy as np
 from tqdm import tqdm
+import time
+import os
+from PIL import Image
+import glob
 
 # Custom imports
 import kinematics as kin
@@ -32,8 +36,37 @@ for i in Range[0]:
 
 loop.close()
 
-# %% Visualize
+# %% Create images
 
-print(points)
+# Unpack the arrays into separate lists for x, y, and z coordinates
+x, y, z = zip(*points)
 
-# %%
+# Create a smaller 3D plot (adjust the width and height as needed)
+fig = plt.figure(figsize=(6, 4))
+ax = fig.add_subplot(111, projection='3d')
+
+# Scatter plot the points
+scatter = ax.scatter(x, y, z)
+
+# Set labels for each axis
+ax.set_xlabel('X Label')
+ax.set_ylabel('Y Label')
+ax.set_zlabel('Z Label')
+
+output_folder = "C:/Users/drein/Documents/Classes/ME_537_robotics/me537_robotics_final_project/Software/Images/new_gif"
+os.makedirs(output_folder, exist_ok=True)
+
+loop = tqdm(total=360)
+# Allow interactive rotation
+for i in range(360):
+    ax.view_init(azim=i)
+    plt.savefig('C:/Users/drein/Documents/Classes/ME_537_robotics/me537_robotics_final_project/Software/Images/new_gif/{0:03}.png'.format(i))
+    loop.update(1)
+
+loop.close()
+
+# %% Create GIF
+frames = [Image.open(image) for image in glob.glob(f'{output_folder}/*.png')]
+frame_one = frames[0]
+frame_one.save("my_awesome.gif", format="GIF", append_images=frames,
+                save_all=True, duration=1, loop=0)
