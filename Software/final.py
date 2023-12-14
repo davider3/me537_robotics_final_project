@@ -115,7 +115,7 @@ class RobotArmGUI(QWidget):
 
         gain = .05 * np.eye(6)
 
-        self.qs, _, _, _, _ = self.arm.ik_position(goal, plot=True, 
+        self.qs, _, _, _, _ = self.arm.ik_position(goal, plot=False, 
                                                    method='p_inv', K=gain, kj=2,
                                                    q0=self.q_curr, max_iter=2000)
 

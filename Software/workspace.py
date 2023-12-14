@@ -64,7 +64,6 @@ for i in range(steps):
     loop.update(1)
 
 loop.close()
-
 # %% Create GIF
 frames = [Image.open(image) for image in glob.glob(f'{output_folder}/*.png')]
 frame_one = frames[0]
