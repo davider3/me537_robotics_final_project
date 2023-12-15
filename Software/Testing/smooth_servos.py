@@ -49,7 +49,7 @@ for j in range(len(joints)):
 
 controller.exit()
 
-# %% Move one servoe
+# %% Move one servo
 
 steps = 50
 q_steps = [np.linspace(q_curr[i], qs[i], steps) for i in range(len(qs))]
