@@ -20,7 +20,7 @@ if not hasattr(inspect, 'getargspec'):
 # %% Create arduino object and Zero servos
 
 servo_pins=[9, 10, 11]
-controller = Arduino('COM11')
+controller = Arduino('COM8')
 joints = [controller.get_pin(f'd:{pin}:p') for pin in servo_pins]
 
 controller.digital[12].write(1)

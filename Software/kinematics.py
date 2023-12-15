@@ -407,14 +407,17 @@ class SerialArm:
         return (q, error, count, count < max_iter, 'No errors noted')
     
     def get_distance_vec(self,q, position, index):
-            T_cur = self.arm.fk(q, index)
+            T_cur = self.fk(q, index)
             cur_position = T_cur[0:3,3]
 
             distance_vec = (position-cur_position)
 
             return distance_vec
 
-    def ik_position_w_obstacle(self, target,obst_location,obst_radius, plot=False, q0=None, method='J_T', force=True, tol=1e-4, K=None, k_obst= .2, k_perp= .01, safety_factor=2, kd=0.001, max_iter=100):
+    def ik_position_w_obstacle(self, target,obst_location,obst_radius, 
+                               plot=False, q0=None, method='J_T', force=True, 
+                               tol=1e-4, K=None, k_obst= .2, k_perp= .01, 
+                               safety_factor=2, kd=0.001, max_iter=100):
         """
         (qf, ef, iter, reached_max_iter, status_msg) = arm.ik2(target, q0=None, method='jt', force=False, tol=1e-6, K=None)
         Description:
@@ -467,7 +470,6 @@ class SerialArm:
         error = None
         count = 0
 
-
         maximum_reach = 0
         for i in range(self.n):  # Add max length of each link
             maximum_reach = maximum_reach + np.sqrt(self.dh[i][1] ** 2 + self.dh[i][2] ** 2)
@@ -487,20 +489,10 @@ class SerialArm:
             e[:3] = p_des - ht_cur[:3, 3]
             return e
 
-        def jt_q_dot(q, e):
-            jt = np.transpose(self.jacob(q))
-            return jt @ (K @ e)
-
-        def pinv_q_dot(q, e):
-            j = self.jacob(q)
-            jt = np.transpose(j)
-            return jt @ np.linalg.inv(j @ jt + (kd**2) * np.eye(6)) @ (K @ e)
-
         # Get initial error
         pose = self.fk(q)
         error = get_error(target, pose)
         q_s = []
-        qd_total = np.zeros(3)
         # Initialize visualization if necessary
         viz = None
         if plot:
@@ -511,6 +503,7 @@ class SerialArm:
         
         goal = np.array(target).reshape(3,)
         obst = np.array(obst_location).reshape(3,)
+        counter = 0
 
         # Iteratively get closer to desired location
         while np.linalg.norm(error) > tol and count < max_iter:
@@ -518,14 +511,7 @@ class SerialArm:
 
             error = get_error(target, pose)
 
-            
-            # if method == 'J_T':
-            #     q_dot = jt_q_dot(q, error)
-            # elif method == 'p_inv':
-            #     q_dot = pinv_q_dot(q, error)
-            # else:
-            #     print("Error, invalid method")
-            #     break
+            qd_total = np.zeros(3)
             
             for i in range(1,self.n):
                 Ji = self.jacob(q, index=i+1)
@@ -541,6 +527,10 @@ class SerialArm:
                     qd = Ji[0:3,:].T @ K @ goal_dist
                     qd_total = qd_total + qd
 
+                    # Push away from the joint limits
+                    qd_from_joints = kd * (-np.tan(q - np.pi/2))
+                    qd_total = qd_total + qd_from_joints
+
                     # check obstacle distance for the tip as well to see if we should move the tip 
                     # perpendicular to the obstacle
                     obst_dist = self.get_distance_vec(q, obst_location, i+1)
@@ -552,7 +542,7 @@ class SerialArm:
                         # find a joint velocity that also moves the tip around or perpendicular to  the object
                         # but in the general direction of the goal 
                         qd = k_perp * Ji[0:3,:].T @ dir_perpendicular
-                  
+
                 # if frame is too close to the obstacle, find a joint velocity that moves it away. 
                 if dist_mag < obst_radius*safety_factor:
                   
