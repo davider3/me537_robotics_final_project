@@ -136,7 +136,7 @@ class RobotArmGUI(QWidget):
         #                                            method='p_inv', K=gain, 
         #                                            q0=self.q_curr, max_iter=2000)
 
-        self.qs = self.arm.ik_position_w_obstacle(goal,obst,radius, plot=True, kd = 0,
+        self.qs = self.arm.ik_position_w_obstacle(goal,obst,radius, plot=False, kd = 0.000003,
                                                    method='p_inv', K=gain,k_obst=k_obst,
                                                    k_perp=k_perp,safety_factor=safety_factor, 
                                                    q0=self.q_curr, max_iter=2000, tol=.1)
@@ -204,7 +204,9 @@ if __name__ == '__main__':
     limits = [[0, np.pi],
              [0, np.pi],
              [-np.pi, 0]]
-    window = RobotArmGUI(dh=dh, com='COM8', joint_limits=limits, led=12, init_viz=False)
+    
+    # the com parameter is used to connect to the arduino 
+    window = RobotArmGUI(dh=dh, joint_limits=limits, led=12, init_viz=False)
     window.show()
 
     sys.exit(app.exec_())
