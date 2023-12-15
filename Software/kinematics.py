@@ -400,6 +400,208 @@ class SerialArm:
             viz.hold()
 
         return (q, error, count, count < max_iter, 'No errors noted')
+    
+    def get_distance_vec(self,q, position, index):
+            T_cur = self.arm.fk(q, index)
+            cur_position = T_cur[0:3,3]
+
+            distance_vec = (position-cur_position)
+
+            return distance_vec
+
+    def ik_position_w_obstacle(self, target,obst_location,obst_radius, plot=False, q0=None, method='J_T', force=True, tol=1e-4, K=None, k_obst= .2, k_perp= .01, safety_factor=2, kd=0.001, max_iter=100):
+        """
+        (qf, ef, iter, reached_max_iter, status_msg) = arm.ik2(target, q0=None, method='jt', force=False, tol=1e-6, K=None)
+        Description:
+            Returns a solution to the inverse kinematics problem finding
+            joint angles corresponding to the position (x y z coords) of target
+
+        Args:
+            target: 3x1 numpy array that defines the target location. 
+
+            q0: length of initial joint coordinates, defaults to q=0 (which is
+            often a singularity - other starting positions are recommended)
+
+            method: String describing which IK algorithm to use. Options include:
+                - 'pinv': damped pseudo-inverse solution, qdot = J_dag * e * dt, where
+                J_dag = J.T * (J * J.T + kd**2)^-1
+                - 'J_T': jacobian transpose method, qdot = J.T * K * e
+
+            force: Boolean, if True will attempt to solve even if a naive reach check
+            determines the target to be outside the reach of the arm
+
+            tol: float, tolerance in the norm of the error in pose used as termination criteria for while loop
+
+            K: 3x3 numpy matrix. For both pinv and J_T, K is the positive definite gain matrix used for both. 
+
+            kd: is a scalar used in the pinv method to make sure the matrix is invertible. 
+
+            max_iter: maximum attempts before giving up.
+
+        Returns:
+            qf: 6x1 numpy matrix of final joint values. If IK fails to converge the last set
+            of joint angles is still returned
+
+            ef: 3x1 numpy vector of the final error
+
+            count: int, number of iterations
+
+            flag: bool, "true" indicates successful IK solution and "false" unsuccessful
+
+            status_msg: A string that may be useful to understanding why it failed. 
+        """
+        # Fill in q if none given, and convert to numpy array 
+        if isinstance(q0, np.ndarray):
+            q = q0
+        elif q0 == None:
+            q = np.array([0.0]*self.n)
+        else:
+            q = np.array(q0)
+
+        # initializing some variables in case checks below don't work
+        error = None
+        count = 0
+
+
+        maximum_reach = 0
+        for i in range(self.n):  # Add max length of each link
+            maximum_reach = maximum_reach + np.sqrt(self.dh[i][1] ** 2 + self.dh[i][2] ** 2)
+
+        pt = target  # Find distance to target
+        target_distance = np.sqrt(pt[0] ** 2 + pt[1] ** 2 + pt[2] ** 2)
+
+        if target_distance > maximum_reach and not force:
+            print("WARNING: Target outside of reachable workspace!")
+            return q, error, count, False, "Failed: Out of workspace"
+
+        if not isinstance(K, np.ndarray):
+            return q, error, count, False,  "No gain matrix 'K' provided"
+
+        def get_error(p_des, ht_cur):
+            e = np.zeros(6)
+            e[:3] = p_des - ht_cur[:3, 3]
+            return e
+
+        def jt_q_dot(q, e):
+            jt = np.transpose(self.jacob(q))
+            return jt @ (K @ e)
+
+        def pinv_q_dot(q, e):
+            j = self.jacob(q)
+            jt = np.transpose(j)
+            return jt @ np.linalg.inv(j @ jt + (kd**2) * np.eye(6)) @ (K @ e)
+
+        # Get initial error
+        pose = self.fk(q)
+        error = get_error(target, pose)
+        q_s = []
+        qd_total = np.zeros(3)
+        # Initialize visualization if necessary
+        viz = None
+        if plot:
+            viz = VizScene()
+            viz.add_arm(self)
+            viz.update(qs=[q]) 
+            viz.add_marker(target)
+        
+        goal = np.array(target).reshape(3,)
+        obst = np.array(obst_location).reshape(3,)
+
+        # Iteratively get closer to desired location
+        while np.linalg.norm(error) > tol and count < max_iter:
+            pose = self.fk(q)
+
+            error = get_error(target, pose)
+
+            
+            # if method == 'J_T':
+            #     q_dot = jt_q_dot(q, error)
+            # elif method == 'p_inv':
+            #     q_dot = pinv_q_dot(q, error)
+            # else:
+            #     print("Error, invalid method")
+            #     break
+            
+            for i in range(1,self.n):
+                Ji = self.jacob(q, index=i+1)
+                obst_dist = self.get_distance_vec(q, obst, i+1)
+                dist_mag = np.sqrt(obst_dist.T @ obst_dist)
+
+                if i+1 == self.n:
+                    # find distance vector from the tip to the goal
+                    goal_dist = self.get_distance_vec(q, goal, i+1)
+
+                    # find joint velocities that should move the tip of the robot towards the goal using a 
+                    # virtual spring force (K*goal_dist)
+                    qd = Ji[0:3,:].T @ K @ goal_dist
+                    qd_total = qd_total + qd
+
+                    # check obstacle distance for the tip as well to see if we should move the tip 
+                    # perpendicular to the obstacle
+                    obst_dist = self.get_distance_vec(q, obst_location, i+1)
+                    if dist_mag < obst_radius*safety_factor:
+                        # calculate the perpendicular direction around the obstacle
+                        perpendicular = np.cross(obst_dist, goal-obst)
+                        dir_perpendicular  = perpendicular / np.sqrt(perpendicular.T@perpendicular)
+
+                        # find a joint velocity that also moves the tip around or perpendicular to  the object
+                        # but in the general direction of the goal 
+                        qd = k_perp * Ji[0:3,:].T @ dir_perpendicular
+                  
+                # if frame is too close to the obstacle, find a joint velocity that moves it away. 
+                if dist_mag < obst_radius*safety_factor:
+                  
+                    # calculates how much our virtual spring is compressed 
+                    compressed = obst_radius*safety_factor-dist_mag
+
+                    # finds the direction we should move the frame away 
+                    dir_away = -obst_dist/np.sqrt(obst_dist.T@obst_dist)
+
+                    # using J.T method to calculate a pseudo torque, that we assume is correlated
+                    # with the joint velocity that torque would cause. We just tune the gain to
+                    # get reasonable motion. 
+                    qd = k_obst*compressed * Ji[0:3,:].T @ dir_away
+                    qd_total = qd_total + qd
+
+                # update error to check termination criteria
+            error_vec = self.get_distance_vec(q, goal, self.n)
+            error = error_vec.T@error_vec
+
+            q = q+qd_total
+
+            q_s.append(q)
+            counter = counter + 1
+            # print("counter:", counter)
+            # print("error:", error)
+
+            if plot:
+                viz.update(qs=q)
+                time.sleep(.05)
+
+
+        return q_s
+
+            # count += 1
+            # if self.qlim == None:
+            #     q = q_dot + q
+            # else:
+            #     for i in range(len(q)):
+            #         new_q = q_dot[i] + q[i]
+                    
+                    
+            #         if new_q < self.qlim[i][0] or new_q > self.qlim[i][1]:
+            #             q[i] = random.uniform(self.qlim[i][0], self.qlim[i][1])
+            #         else:
+            #             q[i] = new_q
+            
+        #     if plot:
+        #         viz.update(qs=[q])
+
+        # # Show the visualization for a bit longer when finished and then close viz
+        # if plot:
+        #     viz.hold()
+
+        # return (q, error, count, count < max_iter, 'No errors noted')
 
     def Z_shift(self, R=np.eye(3), p=np.zeros(3), p_frame='i'):
 
