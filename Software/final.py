@@ -72,8 +72,14 @@ class RobotArmGUI(QWidget):
         self.labels = [QLabel('X Coordinate:'),
                        QLabel('Y Coordinate:'),
                        QLabel('Z Coordinate:'),
+                       QLabel('Obstacle X:'),
+                       QLabel('Obstacle Y:'),
+                       QLabel('Obstacle Z:'),
                        QLabel('Calculated Angles:')]
         self.inputs = [QLineEdit(self),
+                       QLineEdit(self),
+                       QLineEdit(self),
+                       QLineEdit(self),
                        QLineEdit(self),
                        QLineEdit(self)]
 
@@ -111,27 +117,56 @@ class RobotArmGUI(QWidget):
 
     def ik(self):
         # Get goal location from GUI
-        goal = [float(input.text()) for input in self.inputs]
+        points = [float(input.text()) for input in self.inputs]
+        goal = points[:3]
+        obst = points[3:]
 
-        gain = .05 * np.eye(6)
+        gain = .008 * np.eye(3) 
+        k_obst = 0.2
+        k_perp = 0.01
 
-        self.qs, _, _, _, _ = self.arm.ik_position(goal, plot=False, 
-                                                   method='p_inv', K=gain, kj=2,
-                                                   q0=self.q_curr, max_iter=2000)
+        # Hardcoded Values
+        # obst = [4,.5,4.35]
+        radius = 1.0
+
+        
+        safety_factor = 1.5
+
+        # self.qs, _, _, _, _ = self.arm.ik_position(goal, plot=True, 
+        #                                            method='p_inv', K=gain, 
+        #                                            q0=self.q_curr, max_iter=2000)
+
+        self.qs = self.arm.ik_position_w_obstacle(goal,obst,radius, plot=False, kd = 0.000003,
+                                                   method='p_inv', K=gain,k_obst=k_obst,
+                                                   k_perp=k_perp,safety_factor=safety_factor, 
+                                                   q0=self.q_curr, max_iter=2000, tol=.1)
+
+        viz = VizScene()
+        viz.add_arm(self.arm)
+        viz.add_marker(goal)
+        viz.add_obstacle(obst, rad=radius)
+
+        for q in self.qs:
+            viz.update(qs=q)
+            time.sleep(.05)
+        
+        viz.hold()
 
         # Display the calculated angles in the label
-        self.labels[3].setText(f'q\u2081 = {round(self.qs[0]*rad_to_deg, 3)}, ' 
-                               f'q\u2082 = {round(self.qs[1]*rad_to_deg, 3)}, '
-                               f'q\u2083 = {round(self.qs[2]*rad_to_deg, 3)}')
+        self.labels[3].setText(f'q\u2081 = {round(self.qs[-1][0]*rad_to_deg, 3)}, ' 
+                               f'q\u2082 = {round(self.qs[-1][1]*rad_to_deg, 3)}, '
+                               f'q\u2083 = {round(self.qs[-1][2]*rad_to_deg, 3)}')
+
+    
 
     def move(self):
         
         # run the inverse kinematics to get to that point
         self.ik()
 
-        if self.valid_qs():
+        for q_s in self.qs:
             # Smoothly-ish move the servos
-            for joint, q in zip(self.joints, self.qs):
+            for joint, q in zip(self.joints, q_s):
                 joint.write(np.abs(q*rad_to_deg))
                 time.sleep(.5)
             self.q_curr = self.qs
